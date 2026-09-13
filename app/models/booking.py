@@ -1,12 +1,17 @@
 import uuid
 from datetime import datetime
 from enum import Enum as PyEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.room import Room
+    from app.models.user import User
 
 
 class BookingStatus(str, PyEnum):
@@ -24,13 +29,9 @@ class Booking(Base):
     """
 
     __tablename__ = "bookings"
-    __table_args__ = (
-        CheckConstraint("end_time > start_time", name="ck_booking_time_order"),
-    )
+    __table_args__ = (CheckConstraint("end_time > start_time", name="ck_booking_time_order"),)
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     room_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("rooms.id"), nullable=False, index=True)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

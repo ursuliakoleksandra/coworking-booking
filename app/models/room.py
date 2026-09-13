@@ -1,11 +1,15 @@
 import uuid
 from enum import Enum as PyEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.booking import Booking
 
 
 class RoomType(str, PyEnum):
@@ -16,9 +20,7 @@ class RoomType(str, PyEnum):
 class Room(Base):
     __tablename__ = "rooms"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     room_type: Mapped[RoomType] = mapped_column(Enum(RoomType), nullable=False)
     capacity: Mapped[int] = mapped_column(Integer, default=1)
