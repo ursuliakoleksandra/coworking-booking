@@ -7,3 +7,6 @@ router = APIRouter(tags=["health"])
 async def health_check() -> dict[str, str]:
     """Простий health-check для балансувальника навантаження."""
     return {"status": "ok"}
+
+
+x = 1
