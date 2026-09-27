@@ -22,6 +22,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://booking_user:booking_pass@db:5432/booking_db
       REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: change-me-in-production-this-is-a-lab-default-key
     ports:
       - "8000:8000"
     depends_on:

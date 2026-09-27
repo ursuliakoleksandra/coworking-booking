@@ -1,17 +1,13 @@
-import asyncio
-import sys
-
-if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
 from fastapi import FastAPI
 
 from app.core.config import settings
-from app.routers import bookings, health, rooms
+from app.routers import auth, bookings, health, home, rooms
 
 app = FastAPI(title=settings.app_name)
 
 app.include_router(health.router)
+app.include_router(auth.router)
+app.include_router(home.router)
 app.include_router(rooms.router)
 app.include_router(bookings.router)
 
