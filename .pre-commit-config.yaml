@@ -26,3 +26,4 @@ repos:
       - id: trailing-whitespace
       - id: check-yaml
       - id: check-merge-conflict
+      - id: detect-private-key

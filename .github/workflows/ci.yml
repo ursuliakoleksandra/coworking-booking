@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Лінтери і тести
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Встановлення залежностей
+        run: pip install -r requirements-dev.txt
+
+      - name: black
+        run: black --check .
+
+      - name: ruff
+        run: ruff check .
+
+      - name: flake8
+        run: flake8 .
+
+      # Тести самі виставляють тестове середовище (APP_ENV=test) і не потребують секретів чи БД
+      - name: pytest
+        run: pytest -v
+
+  docker-build:
+    name: Збірка production-образу
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Збірка образу (лише робочі залежності)
+        run: docker build --build-arg REQUIREMENTS=requirements.txt -t coworking-booking:ci .

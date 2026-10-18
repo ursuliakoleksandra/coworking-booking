@@ -2,31 +2,48 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: booking_user
-      POSTGRES_PASSWORD: booking_pass
-      POSTGRES_DB: booking_db
+      POSTGRES_USER: ${POSTGRES_USER:?Задайте POSTGRES_USER у .env-файлі}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD у .env-файлі}
+      POSTGRES_DB: ${POSTGRES_DB:?Задайте POSTGRES_DB у .env-файлі}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
 
   app:
     build:
       context: ..
       dockerfile: Dockerfile
+      args:
+        REQUIREMENTS: ${REQUIREMENTS:-requirements.txt}
     environment:
-      DATABASE_URL: postgresql+asyncpg://booking_user:booking_pass@db:5432/booking_db
+      APP_ENV: ${APP_ENV:?Задайте APP_ENV у .env-файлі}
+      DEBUG: ${DEBUG:-false}
+      ENABLE_DOCS: ${ENABLE_DOCS:-false}
+      SECRET_KEY: ${SECRET_KEY:?Задайте SECRET_KEY у .env-файлі}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
       REDIS_URL: redis://redis:6379/0
     ports:
-      - "8000:8000"
+      - "${APP_PORT:-8000}:8000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
 volumes:
   db_data:

@@ -27,3 +27,8 @@ class BookingRead(BaseModel):
     start_time: datetime
     end_time: datetime
     status: BookingStatus
+
+
+class AdminBookingRead(BookingRead):
+    user_email: str
+    room_name: str

@@ -2,10 +2,12 @@ import asyncio
 import sys
 
 if sys.platform == "win32":
+    # asyncpg нестабільно працює зі стандартним ProactorEventLoop на
+    # Windows при прямому підключенні з хоста до Postgres у Docker.
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-from app.core.database import Base, engine
-from app.models import Booking, Room, User  # noqa: F401
+from app.core.database import Base, engine  # noqa: E402
+from app.models import Booking, Room, User, UserRole  # noqa: E402, F401
 
 
 async def main() -> None:
