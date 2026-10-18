@@ -21,13 +21,6 @@ class BookingStatus(str, PyEnum):
 
 
 class Booking(Base):
-    """Бронювання ресурсу (стіл / зала) на певний часовий слот.
-
-    Саме ця таблиця — головна точка конкурентного доступу: багато
-    користувачів можуть одночасно намагатися забронювати один і той
-    самий room_id на один і той самий часовий інтервал.
-    """
-
     __tablename__ = "bookings"
     __table_args__ = (CheckConstraint("end_time > start_time", name="ck_booking_time_order"),)
 

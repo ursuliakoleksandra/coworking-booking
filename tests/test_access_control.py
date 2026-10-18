@@ -1,22 +1,9 @@
-"""Інтеграційні тести авторизації та контролю доступу.
-
-Покриває всі чотири сценарії з методички лабораторної роботи №2:
-1. Анонімний доступ -> 401
-2. Успішна автентифікація + помилки входу -> 200 / 401
-3. Вертикальне розмежування ролей (user -> admin-панель) -> 403
-4. Горизонтальне розмежування прав / IDOR (чуже бронювання) -> 403
-"""
-
 from datetime import UTC, datetime, timedelta
 
 from httpx import AsyncClient
 
 from app.models.room import Room, RoomType
 from app.models.user import UserRole
-
-# ---------------------------------------------------------------------------
-# 1. Анонімний доступ
-# ---------------------------------------------------------------------------
 
 
 async def test_anonymous_access_to_user_home_is_rejected(client: AsyncClient) -> None:
@@ -27,11 +14,6 @@ async def test_anonymous_access_to_user_home_is_rejected(client: AsyncClient) ->
 async def test_anonymous_access_to_bookings_is_rejected(client: AsyncClient) -> None:
     response = await client.get("/bookings/my")
     assert response.status_code == 401
-
-
-# ---------------------------------------------------------------------------
-# 2. Успішна автентифікація та помилки входу
-# ---------------------------------------------------------------------------
 
 
 async def test_register_then_login_succeeds(client: AsyncClient) -> None:
@@ -85,11 +67,6 @@ async def test_authenticated_user_can_read_own_profile(
     assert response.json()["email"] == "alice@example.com"
 
 
-# ---------------------------------------------------------------------------
-# 3. Вертикальне розмежування ролей
-# ---------------------------------------------------------------------------
-
-
 async def test_regular_user_cannot_access_admin_home(
     client: AsyncClient, make_user, auth_headers
 ) -> None:
@@ -116,11 +93,6 @@ async def test_regular_user_can_access_own_home(
 
     response = await client.get("/home/user", headers=headers)
     assert response.status_code == 200
-
-
-# ---------------------------------------------------------------------------
-# 4. Горизонтальне розмежування прав (IDOR)
-# ---------------------------------------------------------------------------
 
 
 async def _create_room(db_session) -> Room:

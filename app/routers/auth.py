@@ -14,12 +14,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 async def register(payload: UserRegister, db: AsyncSession = Depends(get_db)) -> User:
-    """Самостійна реєстрація. Завжди створює користувача з роллю USER.
 
-    Реєстрація адміністраторів навмисно не публічна (як і вказано в
-    завданні як опціональна) — адмінів створює вже наявний адмін, або їх
-    заводять напряму через скрипт `scripts/create_admin.py`.
-    """
     existing = (
         await db.execute(select(User).where(User.email == payload.email))
     ).scalar_one_or_none()
@@ -46,12 +41,6 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db),
 ) -> Token:
-    """Вхід для будь-якого типу користувача (і USER, і ADMIN) — за email/паролем.
-
-    OAuth2PasswordRequestForm — стандартна форма FastAPI (поля username,
-    password); ми кладемо в 'username' саме email. Це дозволяє одразу
-    користуватись кнопкою "Authorize" у Swagger UI.
-    """
     user = (
         await db.execute(select(User).where(User.email == form_data.username))
     ).scalar_one_or_none()
@@ -75,5 +64,4 @@ async def login(
 
 @router.get("/me", response_model=UserRead)
 async def read_current_user(current_user: User = Depends(get_current_user)) -> User:
-    """Повертає дані поточного автентифікованого користувача."""
     return current_user

@@ -1,9 +1,11 @@
 from fastapi import APIRouter
 
+from app.core.config import settings
+
 router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
 async def health_check() -> dict[str, str]:
-    """Простий health-check для балансувальника навантаження."""
-    return {"status": "ok"}
+    """Health-check для балансувальника; показує, яке середовище зараз запущене."""
+    return {"status": "ok", "environment": settings.app_env}

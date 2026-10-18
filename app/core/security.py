@@ -27,13 +27,17 @@ def create_access_token(subject: uuid.UUID | str, expires_minutes: int | None = 
     expire_delta = timedelta(minutes=expires_minutes or settings.access_token_expire_minutes)
     expire_at = datetime.now(UTC) + expire_delta
     payload = {"sub": str(subject), "exp": expire_at}
-    return jwt.encode(payload, settings.secret_key, algorithm=settings.jwt_algorithm)
+    return jwt.encode(
+        payload, settings.secret_key.get_secret_value(), algorithm=settings.jwt_algorithm
+    )
 
 
 def decode_access_token(token: str) -> uuid.UUID | None:
     """Декодує токен і повертає id користувача, або None, якщо токен невалідний/протермінований."""
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key.get_secret_value(), algorithms=[settings.jwt_algorithm]
+        )
     except JWTError:
         return None
 

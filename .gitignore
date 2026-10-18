@@ -2,10 +2,13 @@ __pycache__/
 *.pyc
 .venv/
 venv/
-.env
 *.db
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
 .DS_Store
 .idea/
+.env
+.env.*
+!.env.sandbox.example
+!.env.production.example

@@ -1,15 +1,3 @@
-"""Спільні pytest-фікстури.
-
-Юніт-тести (test_security_unit.py) взагалі не торкаються БД.
-
-Інтеграційні тести (test_access_control.py) піднімають ізольовану
-SQLite-базу в пам'яті на кожен тест (через кастомний крос-діалектний
-GUID-тип у app.core.types — той самий код моделей працює і з
-PostgreSQL у продакшн, і з SQLite тут), і підміняють залежність
-get_db в застосунку. Це дозволяє ганяти повний набір тестів миттєво,
-без Docker/Postgres.
-"""
-
 from collections.abc import AsyncGenerator, Callable, Coroutine
 
 import pytest
@@ -61,9 +49,6 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 def make_user(
     db_session: AsyncSession,
 ) -> Callable[..., Coroutine[None, None, User]]:
-    """Фабрика для створення користувача напряму в БД (в обхід API) —
-    зручно для підготовки даних тесту, окремо від самої логіки реєстрації.
-    """
 
     async def _make_user(
         email: str,
@@ -89,10 +74,6 @@ def make_user(
 async def auth_headers(
     client: AsyncClient,
 ) -> Callable[[str, str], Coroutine[None, None, dict[str, str]]]:
-    """Логінить користувача через реальний ендпоінт /auth/login і повертає
-    готовий заголовок Authorization — щоб тести перевіряли справжній потік,
-    а не токен, згенерований в обхід API.
-    """
 
     async def _auth_headers(email: str, password: str) -> dict[str, str]:
         response = await client.post("/auth/login", data={"username": email, "password": password})

@@ -1,13 +1,3 @@
-"""Кастомні типи SQLAlchemy, портовані між діалектами БД.
-
-GUID зберігає UUID як нативний PostgreSQL UUID у продакшн-БД, і як
-CHAR(32) (hex-рядок без дефісів) на будь-якому іншому діалекті — зокрема
-на SQLite, який ми використовуємо для швидких pytest-тестів, щоб не
-тримати Postgres піднятим для юніт-тестів.
-
-Патерн офіційно задокументований у SQLAlchemy: "Backend-agnostic GUID Type".
-"""
-
 import uuid
 
 from sqlalchemy import CHAR

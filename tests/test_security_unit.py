@@ -1,9 +1,3 @@
-"""Юніт-тести модуля app.core.security.
-
-Жоден із цих тестів не торкається бази даних чи мережі — це чисті
-юніт-тести функцій хешування паролів та роботи з JWT.
-"""
-
 import uuid
 
 from app.core.security import (
@@ -31,7 +25,6 @@ def test_verify_password_incorrect() -> None:
 
 
 def test_hash_password_is_salted() -> None:
-    """Той самий пароль має давати різні хеші (унікальна сіль щоразу)."""
     hash_one = hash_password("same-password")
     hash_two = hash_password("same-password")
     assert hash_one != hash_two

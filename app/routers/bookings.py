@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -54,6 +55,15 @@ async def create_booking(
     можливе подвійне бронювання. Це навмисно залишено як точка для
     вдосконалення (advisory lock / Redis lock) у наступних лабораторних.
     """
+    start = (
+        payload.start_time if payload.start_time.tzinfo else payload.start_time.replace(tzinfo=UTC)
+    )
+    if start < datetime.now(UTC):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Не можна бронювати час, який уже минув",
+        )
+
     overlap_query = select(Booking).where(
         Booking.room_id == payload.room_id,
         Booking.status != BookingStatus.CANCELLED,
@@ -86,7 +96,11 @@ async def list_my_bookings(
     db: AsyncSession = Depends(get_db),
 ) -> list[Booking]:
     """Список бронювань поточного користувача (тільки власні)."""
-    result = await db.execute(select(Booking).where(Booking.user_id == current_user.id))
+    result = await db.execute(
+        select(Booking)
+        .where(Booking.user_id == current_user.id)
+        .order_by(Booking.start_time.desc())
+    )
     return list(result.scalars().all())
 
 
