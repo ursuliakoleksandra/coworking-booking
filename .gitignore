@@ -12,3 +12,4 @@ venv/
 .env.*
 !.env.sandbox.example
 !.env.production.example
+loadtests/results/
