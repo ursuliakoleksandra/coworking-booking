@@ -66,6 +66,14 @@ production. Автотести взагалі не торкаються жодн
 
 ## 5. Запуск
 
+### Ізоляція баз даних
+
+Кожне середовище — окремий Docker-проєкт (`-p`): власний контейнер Postgres, власний том,
+власна база, окремі облікові дані та порт. Тестові дані фізично не можуть потрапити в
+production. Автотести взагалі не торкаються жодної з них (SQLite у пам'яті).
+
+## 5. Запуск
+
 ### 5.1. Підготовка (один раз)
 
 ```powershell
@@ -168,6 +176,103 @@ scripts/       create_admin.py, smoke_check.py
 tests/
 ```
 
+=======
+
+### 5.2. Sandbox
+
+```powershell
+copy .env.sandbox.example .env.sandbox
+docker compose --env-file .env.sandbox -p coworking-sandbox -f config/docker-compose.yml up -d --build
+docker compose --env-file .env.sandbox -p coworking-sandbox -f config/docker-compose.yml exec app python create_tables.py
+docker compose --env-file .env.sandbox -p coworking-sandbox -f config/docker-compose.yml exec app python scripts/create_admin.py admin@example.com "Admin User" secretpass123
+```
+
+Відкрийте http://localhost:8000 (інтерфейс) або http://localhost:8000/docs (Swagger).
+Перевірка середовища: http://localhost:8000/health → `"environment": "sandbox"`.
+
+### 5.3. Production
+
+```powershell
+copy .env.production.example .env.production
+```
+
+Відкрийте `.env.production` і замініть усі `CHANGE-ME` (ключ: `python -c "import secrets; print(secrets.token_urlsafe(48))"`). Далі:
+
+```powershell
+docker compose --env-file .env.production -p coworking-production -f config/docker-compose.yml up -d --build
+docker compose --env-file .env.production -p coworking-production -f config/docker-compose.yml exec app python create_tables.py
+docker compose --env-file .env.production -p coworking-production -f config/docker-compose.yml exec app python scripts/create_admin.py admin@yourcompany.com "Admin" <надійний-пароль>
+```
+
+Інтерфейс: http://localhost:8001, `/health` → `"environment": "production"`, `/docs` повертає 404.
+
+Обидва середовища можна тримати запущеними одночасно — порти й дані в них різні.
+
+### 5.4. Зупинка
+
+```powershell
+docker compose --env-file .env.sandbox -p coworking-sandbox -f config/docker-compose.yml down
+```
+
+Додайте `-v`, щоб видалити й дані бази цього середовища.
+
+## 6. Безпечна обробка помилок
+
+- `DEBUG=false` (production): при будь-якій неочікуваній помилці користувач бачить лише
+  `{"detail": "Внутрішня помилка сервера…", "error_id": "a1b2c3d4"}`. Стектрейс іде тільки в
+  серверний лог разом із тим самим `error_id`, тож помилку можна знайти за кодом.
+- `DEBUG=true` (sandbox): показується детальний трейсбек для розробника.
+- Усі відповіді мають заголовки `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`.
+- Інтерфейс вставляє дані сервера лише як текст (без `innerHTML`) — захист від XSS.
+
+## 7. Веб-інтерфейс
+
+Віддається самим FastAPI (`app/static`, без збірки): `/` — вхід і реєстрація.
+
+- **Користувач:** вибір залу, шкала дня 08:00–20:00 із зайнятими інтервалами, бронювання,
+  «Мої бронювання» зі скасуванням.
+- **Адміністратор:** додатково — усі бронювання (з іменами користувачів), додавання залів, список користувачів.
+
+Права перевіряє сервер (інтерфейс лише приховує зайве), тож 401/403 повертаються й на прямі запити до API.
+
+## 8. CI/CD (GitHub Actions)
+
+`.github/workflows/ci.yml` запускається при кожному Pull Request і коміті в `main`:
+
+1. **Лінтери і тести:** `black --check`, `ruff`, `flake8`, `pytest` (юніт- та інтеграційні тести з ЛР №2 + нові).
+2. **Збірка production-образу:** `docker build` лише з робочими залежностями — перевіряє, що образ збирається.
+
+Тести виставляють власне середовище (`APP_ENV=test`, `tests/__init__.py`), тому CI не потребує секретів.
+
+## 9. Тести
+
+```powershell
+python -m pytest -v
+```
+
+Docker і Postgres не потрібні. Покрито: автентифікацію та ролі, IDOR, конфігурації
+(`tests/test_config.py`), безпечні помилки 500 (`tests/test_error_handling.py`),
+інтерфейс і адмін-API (`tests/test_ui_and_admin.py`).
+
+## 10. Контроль якості коду
+
+black, ruff, flake8 + pre-commit (`pre-commit install`) блокують коміт із помилками стилю;
+додатково `detect-private-key` блокує випадковий коміт приватних ключів. Приклади: `docs/precommit-demo*.md`.
+
+## 11. Структура
+
+```
+app/
+  core/        config (середовища), database, security, deps (RBAC), types
+  models/ schemas/ routers/ (auth, home, admin, rooms, bookings, health)
+  static/      веб-інтерфейс (index.html, app.js, style.css)
+config/        docker-compose.yml (спільний для обох середовищ)
+.github/workflows/ci.yml
+.env.sandbox.example  .env.production.example
+scripts/       create_admin.py
+tests/
+```
+
 ## 12. Навантажувальне тестування (ЛР №4)
 
 **Інструмент — Locust** (сценарій — звичайний Python, headless-режим, CSV-вихід). Тестується лише
@@ -200,6 +305,8 @@ tests/
 ### Запуск
 
 Запустіть sandbox із ЛР №3 (контейнери `coworking-sandbox-*`; таблиці та адміністратор створюються автоматично), потім у venv:
+=======
+Запустіть sandbox із ЛР №3 (контейнери `coworking-sandbox-*`, таблиці створені, адміністратор існує), потім у venv:
 
 ```powershell
 pip install -r loadtests/requirements-loadtest.txt
@@ -287,3 +394,7 @@ docker compose logs -f app                # логи застосунку
 docker compose exec app python scripts/create_admin.py <email> "<ім'я>" <пароль>
 docker compose exec db psql -U sandbox_user -d booking_sandbox -c "\dt"   # таблиці в БД
 ```
+=======
+Перевірка подвійних бронювань читає **всю** базу, тому для чистого результату запускайте тест на свіжій sandbox-базі (`down -v`, потім `up` і `create_tables`).
+
+Якщо контейнери називаються інакше: `--containers <app> <db>`. Без Docker: `--match uvicorn --match postgres`.
