@@ -1,0 +1,80 @@
+# ЛР №5 — вся система однією командою:
+#
+#   docker compose up --build
+#
+# Змінні беруться з файлу .env (Compose читає його автоматично; шаблон — .env.sandbox.example).
+# Для іншого середовища: docker compose --env-file .env.production -p coworking-production up -d --build
+name: coworking-booking
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Задайте POSTGRES_USER у файлі .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD у файлі .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Задайте POSTGRES_DB у файлі .env}
+    volumes:
+      # Іменований том: дані переживають зупинку й видалення контейнера (зникають лише при `down -v`)
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REQUIREMENTS: ${REQUIREMENTS:-requirements.txt}
+    image: coworking-booking:${APP_ENV:-sandbox}
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:?Задайте APP_ENV у файлі .env}
+      DEBUG: ${DEBUG:-false}
+      ENABLE_DOCS: ${ENABLE_DOCS:-false}
+      SECRET_KEY: ${SECRET_KEY:?Задайте SECRET_KEY у файлі .env}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Усередині Docker-мережі застосунок бачить сервіси за їхніми іменами
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      REDIS_URL: redis://redis:6379/0
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+networks:
+  # frontend — єдина мережа з виходом назовні (через неї публікується порт застосунку)
+  frontend: {}
+  # backend — внутрішня мережа: база даних і Redis недоступні ні ззовні, ні з хоста
+  backend:
+    internal: true
+
+volumes:
+  db_data:

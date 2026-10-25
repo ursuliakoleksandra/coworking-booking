@@ -39,7 +39,6 @@ jobs:
       - name: flake8
         run: flake8 .
 
-      # Тести самі виставляють тестове середовище (APP_ENV=test) і не потребують секретів чи БД
       - name: pytest
         run: pytest -v
 
@@ -49,5 +48,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Перевірка docker-compose (sandbox, production, dev-режим)
+        run: |
+          docker compose --env-file .env.sandbox.example config --quiet
+          docker compose --env-file .env.production.example config --quiet
+          docker compose --env-file .env.sandbox.example -f docker-compose.yml -f docker-compose.dev.yml config --quiet
       - name: Збірка образу (лише робочі залежності)
         run: docker build --build-arg REQUIREMENTS=requirements.txt -t coworking-booking:ci .

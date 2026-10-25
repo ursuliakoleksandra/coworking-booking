@@ -1,0 +1,17 @@
+# Режим розробки з hot-reload (додаткове завдання ЛР №5):
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Локальний код підключається до контейнера (bind mount), сервер запускається з --reload:
+# змінили файл у app/ — сервер перезавантажився сам, без перезбірки образу.
+services:
+  app:
+    command:
+      ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/app/app"]
+    environment:
+      # Docker Desktop на Windows/macOS не передає в контейнер події файлової системи,
+      # тому відстежуємо зміни опитуванням
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      - ./app:/app/app
+      - ./tests:/app/tests
